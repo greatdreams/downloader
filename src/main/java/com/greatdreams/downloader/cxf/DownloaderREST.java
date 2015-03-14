@@ -22,7 +22,7 @@ import org.apache.logging.log4j.Logger;
  *
  * @author greatdreams
  */
-@Path("/downloader")
+@Path("/subtask/4")
 public class DownloaderREST {
 
     private final Logger logger = LogManager.getLogger(DownloaderREST.class.getName());
@@ -36,8 +36,8 @@ public class DownloaderREST {
                 + "<title>android app downloader</title>"
                 + "</head>"
                 + "<body>"
-                + "<form action='/downloader/' method='post'>"
-                + "<label for='appurl'>android app url</label><input type='text' name='appurl' value='https://github.com/Jonovono/c/archive/master.zip'/><br/><br/>"
+                + "<form action='/subtask/4' method='post'>"
+                + "<label for='appurl'>android app url</label><input type='text' name='url' value='https://github.com/Jonovono/c/archive/master.zip'/><br/><br/>"
                 + "<label for='cookie'>cookie</label><input type='text' name='cookie'/><br/><br/>"
                 + "<input type='submit' value='download'/>"
                 + "</form>"
@@ -49,7 +49,7 @@ public class DownloaderREST {
     @Path("/")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    public String download(@FormParam("appurl") String appurl, @FormParam("cookie") String cookie) {
+    public String download(@FormParam("url") String appurl, @FormParam("cookie") String cookie) {
         logger.info("calling download(appurl = " + appurl + ", cookie = " + cookie + ")");
         int status = 1; // app download status flag
         String statusDescription = "-- app resource is unavailable --"; // description for downloading status
@@ -127,6 +127,7 @@ public class DownloaderREST {
         }
 
         String result;
+        /*
         result = "{"
                 + "\"appurl\" : \" " + appurl + "\", "
                 + "\"status\" : " + status + ",  "
@@ -134,6 +135,14 @@ public class DownloaderREST {
                 + "\"file_name\" : \"" + fileName + "\","
                 + "\"storage_path\" : \"" + storagePath + "/" + fileName + "\""
                 + "}";
+        */
+        
+        result = "{"
+                + "\"agentId\" : \"0\", "
+                + "\"status\" : " + status + ",  "
+                + "\"tmpLocation\" : \"" + storagePath + "/" + fileName + "\""
+                + "}";
+        
         logger.info("return " + result);
         return result;
     }
