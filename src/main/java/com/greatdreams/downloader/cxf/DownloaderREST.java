@@ -1,13 +1,10 @@
 package com.greatdreams.downloader.cxf;
 
-import java.io.BufferedReader;
-import java.io.File;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
-import java.util.logging.Level;
+import java.util.Map;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
@@ -27,8 +24,9 @@ public class DownloaderREST {
 
     private final Logger logger = LogManager.getLogger(DownloaderREST.class.getName());
 
+    // the method has been invalid and don't use it any more.
     @GET
-    @Path("/")
+    @Path("/invalid")
     @Produces(MediaType.TEXT_HTML)
     public String addPlainText() {
         return "<html>"
@@ -45,105 +43,137 @@ public class DownloaderREST {
                 + "</html>";
     }
 
+    // the method has been invalid and don't use it any more.
+    @POST
+    @Path("/invalid")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    public String startTaskTemp(@FormParam("url") final String appurl, @FormParam("cookie") final String cookie) {
+        logger.debug("handle the downloader request (appurl : " + appurl + ", " + "cookie : " + cookie + ")");
+
+        Runnable asynchDownloaderTask = new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    String taskResult = DownloaderUtil.download(appurl, cookie);
+
+                    List<String> cmd = new ArrayList<>();
+                    cmd.add("curl");
+                    cmd.add("-d");
+                    cmd.add("\"" + taskResult + "\"");
+                    cmd.add(ApplicationProperties.FEEDBACKURL);
+
+                    ProcessBuilder pb = new ProcessBuilder(cmd);
+                    Process ps = pb.start();
+
+                    int returnValue = ps.waitFor();
+                    if (returnValue == 0) {
+                        logger.info("successful : feedback the message of downloading '" + "' to " + ApplicationProperties.FEEDBACKURL);
+                    } else {
+                        logger.warn("warn : feedback the message of downloading '" + "' to " + ApplicationProperties.FEEDBACKURL);
+                    }
+                } catch (IOException | InterruptedException ex) {
+                    logger.warn(DownloaderREST.class.getName() + " : " + ex.getMessage());
+                }
+            }
+        };
+
+        String code = "received";
+        String message = "the request for downloading have been received, the downloader is starting ....";
+
+        try {
+            Thread asynchDownloaderTaskThread = new Thread(asynchDownloaderTask);
+            asynchDownloaderTaskThread.start();
+        } catch (Exception ex) {
+            logger.warn(DownloaderREST.class.getName() + ".startTask " + ex.getMessage());
+            code = "failed";
+            message = "due to internal error, the downloader can not handle your request for downloading, Please try again";
+        }
+
+        String result
+                = "{"
+                + "\"code\" : \"" + code + "\","
+                + "\"msg\" : \"" + message + "\""
+                + "}";
+        return result;
+    }
+
+    /**
+     * the following method request method : post data format (json) :
+     * {"agentId" : "0", "url" : "http://www.example.com/", "cookie" : "the is a
+     * cookie data string"} respone format : {"code":"received/failed", "msg":
+     * "description for the code parameter"}
+     *
+     * @param requestJsonString
+     * @return
+     * @throws java.io.IOException
+     */
     @POST
     @Path("/")
     @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    public String download(@FormParam("url") String appurl, @FormParam("cookie") String cookie) {
-        logger.info("calling download(appurl = " + appurl + ", cookie = " + cookie + ")");
-        int status = 1; // app download status flag
-        String statusDescription = "-- app resource is unavailable --"; // description for downloading status
-        String storagePath = "/tmp/android_apps"; // the directory for storage of downloaded android apps
+    public String startTask(String requestJsonString) {
+        String code = "received";
+        String message = "the request for downloading have been received, the downloader is starting ....";
+        String result
+                = "{"
+                + "\"code\" : \"" + code + "\","
+                + "\"msg\" : \"" + message + "\""
+                + "}";
 
-        UUID uuid = UUID.randomUUID();
-        String fileName = uuid.toString(); //downloaded app name which is a java UUID value.
-
-        String headers[] = {
-            "User-Agent:Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0 Iceweasel/31.4.0",
-            "Connection:keep-alive",
-            "Cache-Control:max-age=0",
-            "Accept-Language:en-US,en;q=0.5",
-            "Accept-Encoding:gzip, deflate",
-            "Accept:ext/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-        };
-
-        String headersOption = "";
-        for (String header : headers) {
-            headersOption += "-H \"" + header + "\" ";
-        }
-
-        // System.out.println(headersOption);
-        String cookieOption = " --cookie \"" + cookie + "\" ";
-
-        List<String> cmd = new ArrayList<>();
-        cmd.add("curl");
-        for (String header : headers) {
-            cmd.add("-H \"" + header + "\" ");
-        }
-        cmd.add("--cookie");
-        cmd.add("\"" + cookie + "\"");
-        cmd.add("--location");
-        cmd.add("-o");
-        cmd.add(fileName);
-        cmd.add(appurl);
-
-        Process process;
-        BufferedReader br;
-        int returnValue = 1;
-
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, String> parametersMapper;
         try {
-            //test whether the appurl is available
-            process = new ProcessBuilder("curl", "-I", "--location", appurl).start();
-            br = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            returnValue = process.waitFor();
+            parametersMapper = mapper.readValue(requestJsonString, Map.class);
+        } catch (IOException ex) {
+            logger.error("the request json data format is invalid, please checkout and try again");
+            code = "failed";
+            message = "the request json data format is invalid, please checkout and try again";
+            result =
+                    "{"
+                    + "\"code\" : \"" + code + "\","
+                    + "\"msg\" : \"" + message + "\""
+                    + "}";
+            return result;
+        }
+        
+        final String agentId = parametersMapper.get("agentId");
+        final String appurl = parametersMapper.get("url");
+        final String cookie = parametersMapper.get("cookie");
 
-            if (returnValue == 0) {
-                while (br.ready()) {
-                    String statusLine = br.readLine();
-                    int statusCode = Integer.parseInt(statusLine.substring(9, 12));
-                    
-                    
-                    if (statusCode == 200 || statusCode == 301 || statusCode == 302) {
+        logger.debug("handle the downloader request (appurl : " + appurl + ", " + "cookie : " + cookie + ")");
 
-                        process = new ProcessBuilder(cmd).directory(new File(storagePath)).start();
-                        returnValue = process.waitFor();
-                        if (returnValue == 0) {
-                            status = 0;
-                            statusDescription = "--app downloading sucess---";
-                        }
-                    } 
-                    break;
+        Runnable asynchDownloaderTask = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    String taskResult = DownloaderUtil.download(appurl, cookie);
+
+                    List<String> cmd = new ArrayList<>();
+                    cmd.add("curl");
+                    cmd.add("-d");
+                    cmd.add("\"" + taskResult + "\"");
+                    cmd.add(ApplicationProperties.FEEDBACKURL);
+
+                    ProcessBuilder pb = new ProcessBuilder(cmd);
+                    Process ps = pb.start();
+
+                    int returnValue = ps.waitFor();
+                    if (returnValue == 0) {
+                        logger.info("feedback the message of downloading '" + "' to " + ApplicationProperties.FEEDBACKURL);
+                    } else {
+                        logger.warn("feedback the message of downloading '" + "' to " + ApplicationProperties.FEEDBACKURL);
+                    }
+                } catch (IOException | InterruptedException ex) {
+                    logger.warn(ex.getMessage());
                 }
             }
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        } catch (InterruptedException ex) {
-            ex.printStackTrace();
-        }
-
-        if (status == 1) {
-            fileName = null;
-            storagePath = null;
-        }
-
-        String result;
-        /*
-        result = "{"
-                + "\"appurl\" : \" " + appurl + "\", "
-                + "\"status\" : " + status + ",  "
-                + "\"status_description\" : \"" + statusDescription + "\","
-                + "\"file_name\" : \"" + fileName + "\","
-                + "\"storage_path\" : \"" + storagePath + "/" + fileName + "\""
-                + "}";
-        */
+        };
         
-        result = "{"
-                + "\"agentId\" : \"0\", "
-                + "\"status\" : " + status + ",  "
-                + "\"tmpLocation\" : \"" + storagePath + "/" + fileName + "\""
-                + "}";
-        
-        logger.info("return " + result);
+        // asynchronously start to the downloading task
+        Thread asynchDownloaderTaskThread = new Thread(asynchDownloaderTask);
+        asynchDownloaderTaskThread.start();
+
         return result;
     }
 }

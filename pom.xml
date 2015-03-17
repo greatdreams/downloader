@@ -31,6 +31,18 @@
         </dependency>
         
         <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.5.1</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.5.1</version>
+        </dependency>
+        
+        <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
             <version>2.2</version>
@@ -40,13 +52,19 @@
             <artifactId>log4j-core</artifactId>
             <version>2.2</version>
         </dependency>
+        
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-web</artifactId>
+            <version>2.2</version>
+        </dependency>
 
     </dependencies>
     
     <name>downloader-cxf</name>
     
     <build>
-<!--        <finalName>downloader-cxf</finalName>-->
+        <!--        <finalName>downloader-cxf</finalName>-->
         <plugins>            
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -98,32 +116,42 @@
                 </configuration> 
             </plugin>
             
-            <!--            <plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>2.5.3</version>
                 <configuration>
+                    <finalName>androidapp-downloader.v1.0</finalName>
+                    <outputDirectory>${project.directory}</outputDirectory>
+                    
+                    <descriptors>
+                        <descriptor>distribution.xml</descriptor>
+                    </descriptors>
+                    
+                    <!--
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                         <descriptorRef>bin</descriptorRef>
                     </descriptorRefs>
+                    -->
+                    <!--
                     <archive>
                         <manifest>
                             <mainClass>com.greatdreams.downloader.cxf.DownloaderRESTStartUp</mainClass>
                         </manifest>
                     </archive>
+                    -->
                 </configuration> 
                 <executions>
                     <execution>
-                        <id>make-assembly</id>  this is used for inheritance merges 
-                        <phase>
-                            package
-                        </phase>
+                        <id>make-assembly</id>  <!--this is used for inheritance merges -->
+                        <phase>package</phase>
                         <goals>
                             <goal>single</goal>
                         </goals>
                     </execution>
                 </executions>                   
-            </plugin>-->
+            </plugin>
             
             <!--            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

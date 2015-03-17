@@ -1,0 +1,6 @@
+# 服务绑定的IP地址
+host_ip=127.0.0.1
+# 服务监听的端口 
+host_port=4500
+# android app 下载保存的目录
+tmp_path=/tmp/android_apps/
