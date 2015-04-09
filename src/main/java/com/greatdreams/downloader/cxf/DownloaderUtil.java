@@ -24,8 +24,9 @@ public class DownloaderUtil {
         String statusDescription = "-- app resource is unavailable --"; // description for downloading status
         String storagePath = ApplicationProperties.TEMPPATH; // the directory for storage of downloaded android apps
 
-        UUID uuid = UUID.randomUUID();
-        String fileName = uuid.toString(); //downloaded app name which is a java UUID value.
+      //  UUID uuid = UUID.randomUUID();
+      // String fileName = uuid.toString(); //downloaded app name which is a java UUID value.
+        String fileName = String.valueOf(url.hashCode()); // use the hashcode of url as the filename
 
         String headers[] = {
             "User-Agent:Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0 Iceweasel/31.4.0",
@@ -35,22 +36,17 @@ public class DownloaderUtil {
             "Accept-Encoding:gzip, deflate",
             "Accept:ext/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
         };
-
-        String headersOption = "";
-        for (String header : headers) {
-            headersOption += "-H \"" + header + "\" ";
-        }
-
-        // System.out.println(headersOption);
-        String cookieOption = " --cookie \"" + cookie + "\" ";
         
         List<String> cmd = new ArrayList<>();
         cmd.add("curl");
         for (String header : headers) {
-            cmd.add("-H \"" + header + "\" ");
+            cmd.add("-H");
+            cmd.add(header);
         }
         cmd.add("--cookie");
-        cmd.add("\"" + cookie + "\"");
+        cmd.add(cookie);
+        cmd.add("-C"); // the download will continue the last task if the last download task is interrupted 
+        cmd.add("-");
         cmd.add("--location");
         cmd.add("-o");
         cmd.add(fileName);
@@ -62,7 +58,7 @@ public class DownloaderUtil {
 
         try {
             //test whether the appurl is available
-            process = new ProcessBuilder("curl", "-I", "--location", url).start();
+            process = new ProcessBuilder("curl", "-I", "--location", "-H", "User-Agent:Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0 Iceweasel/31.4.0", url).start();
             br = new BufferedReader(new InputStreamReader(process.getInputStream()));
             returnValue = process.waitFor();
 
@@ -110,9 +106,14 @@ public class DownloaderUtil {
                 + "\"tmpLocation\" : \"" + storagePath + "/" + fileName + "\""
                 + "}";
         */
-        result = "agentId=0&status=" + (status == 0 ? 4 : 0) + "&tmpLocation=" + storagePath + "/" + fileName;
-        logger.info(DownloaderUtil.class.getName()+ ".download return " + result);
+       //  result = "agentId=0&status=" + (status == 0 ? 4 : 0) + "&tmpLocation=" + storagePath + "/" + fileName;
+        result = 
+                "{" +
+                "\"agentId\" : \"f8f1e396c47f153b0b93\", " +
+                "\"status\" : \"" + (status == 0 ? 4 : 0) + "\", " +
+                "\"tmpLocation\" : \"" + storagePath + "/" + fileName + "\"" +                
+                "}";
+        logger.info("download return " + result);
         return result;
-    }
-    
+    }  
 }

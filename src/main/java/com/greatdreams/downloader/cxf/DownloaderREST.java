@@ -9,7 +9,9 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import org.apache.logging.log4j.LogManager;
@@ -19,7 +21,7 @@ import org.apache.logging.log4j.Logger;
  *
  * @author greatdreams
  */
-@Path("/subtask/4")
+@Path("/subtask")
 public class DownloaderREST {
 
     private final Logger logger = LogManager.getLogger(DownloaderREST.class.getName());
@@ -61,7 +63,7 @@ public class DownloaderREST {
                     List<String> cmd = new ArrayList<>();
                     cmd.add("curl");
                     cmd.add("-d");
-                    cmd.add("\"" + taskResult + "\"");
+                    cmd.add("'" + taskResult + "\'");
                     cmd.add(ApplicationProperties.FEEDBACKURL);
 
                     ProcessBuilder pb = new ProcessBuilder(cmd);
@@ -71,7 +73,7 @@ public class DownloaderREST {
                     if (returnValue == 0) {
                         logger.info("successful : feedback the message of downloading '" + "' to " + ApplicationProperties.FEEDBACKURL);
                     } else {
-                        logger.warn("warn : feedback the message of downloading '" + "' to " + ApplicationProperties.FEEDBACKURL);
+                        logger.warn("failed : feedback the message of downloading '" + "' to " + ApplicationProperties.FEEDBACKURL);
                     }
                 } catch (IOException | InterruptedException ex) {
                     logger.warn(DownloaderREST.class.getName() + " : " + ex.getMessage());
@@ -106,18 +108,20 @@ public class DownloaderREST {
      * "description for the code parameter"}
      *
      * @param requestJsonString
+     * @param subtask_id
      * @return
      * @throws java.io.IOException
      */
     @POST
-    @Path("/")
+    @Path("/{subtask_id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public String startTask(String requestJsonString) {
-        String code = "received";
+    public String startTask(String requestJsonString, @PathParam("subtask_id") final String subtask_id) {
+        logger.debug("startTask(" + requestJsonString + ", " + subtask_id + ")");
+        String code = "200"; // 200 for received and 500 for failed
         String message = "the request for downloading have been received, the downloader is starting ....";
         String result
                 = "{"
-                + "\"code\" : \"" + code + "\","
+                + "\"code\" : " + code + ","
                 + "\"msg\" : \"" + message + "\""
                 + "}";
 
@@ -131,13 +135,14 @@ public class DownloaderREST {
             message = "the request json data format is invalid, please checkout and try again";
             result =
                     "{"
-                    + "\"code\" : \"" + code + "\","
+                    + "\"code\" : " + code + ","
                     + "\"msg\" : \"" + message + "\""
                     + "}";
+            
+            logger.info(result);
             return result;
         }
         
-        final String agentId = parametersMapper.get("agentId");
         final String appurl = parametersMapper.get("url");
         final String cookie = parametersMapper.get("cookie");
 
@@ -151,18 +156,22 @@ public class DownloaderREST {
 
                     List<String> cmd = new ArrayList<>();
                     cmd.add("curl");
+                    cmd.add("-H");
+                    cmd.add("\"Message-Type : update_download_subtask\"");
+                    cmd.add("-X");
+                    cmd.add("PUT");                            
                     cmd.add("-d");
-                    cmd.add("\"" + taskResult + "\"");
-                    cmd.add(ApplicationProperties.FEEDBACKURL);
+                    cmd.add(taskResult);
+                    cmd.add(ApplicationProperties.FEEDBACKURL + subtask_id);
 
                     ProcessBuilder pb = new ProcessBuilder(cmd);
                     Process ps = pb.start();
 
                     int returnValue = ps.waitFor();
                     if (returnValue == 0) {
-                        logger.info("feedback the message of downloading '" + "' to " + ApplicationProperties.FEEDBACKURL);
+                        logger.info("sucessful to feedback the message of downloading '" + "' to " + ApplicationProperties.FEEDBACKURL + subtask_id);
                     } else {
-                        logger.warn("feedback the message of downloading '" + "' to " + ApplicationProperties.FEEDBACKURL);
+                        logger.warn("failed to feedback the message of downloading '" + "' to " + ApplicationProperties.FEEDBACKURL + subtask_id);
                     }
                 } catch (IOException | InterruptedException ex) {
                     logger.warn(ex.getMessage());
@@ -174,6 +183,17 @@ public class DownloaderREST {
         Thread asynchDownloaderTaskThread = new Thread(asynchDownloaderTask);
         asynchDownloaderTaskThread.start();
 
+        logger.info(result);
         return result;
     }
+    
+    @PUT
+    @Path("/download/{subtask_id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public String testFeeeback(String requestString, @PathParam("subtask_id") String subtask_id) {
+        System.out.println(subtask_id);
+        System.out.println(requestString);
+        return requestString;
+    }
+    
 }
