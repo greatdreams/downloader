@@ -69,7 +69,7 @@ public class DownloaderUtil {
                     String statusLine = br.readLine();
                     int statusCode = Integer.parseInt(statusLine.substring(9, 12));
 
-                    if (statusCode == 200 || statusCode == 301 || statusCode == 302) {
+                    if (statusCode == 200 || statusCode == 301 || statusCode == 302 || statusCode == 405) {
 
                         process = new ProcessBuilder(cmd).directory(new File(storagePath)).start();
                         returnValue = process.waitFor();

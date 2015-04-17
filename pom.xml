@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.greatdreams</groupId>
     <artifactId>downloader-cxf</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.1-SNAPSHOT</version>
     <packaging>jar</packaging>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -121,7 +121,7 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>2.5.3</version>
                 <configuration>
-                    <finalName>androidapp-downloader.v1.01</finalName>
+                    <finalName>androidapp-downloader.v1.02</finalName>
                     <outputDirectory>${project.directory}</outputDirectory>
                     
                     <descriptors>
